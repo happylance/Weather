@@ -9,6 +9,8 @@ body
       each forecast in forecasts
         tr
           td
+            body #{forecast.date}
+          td
             body #{forecast.time}
           td
             body  #{forecast.temp}

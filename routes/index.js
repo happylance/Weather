@@ -42,8 +42,7 @@ function datetimeInChinese(datetime, offset) {
   hour = hour > 12 ? hour - 12 : hour
   hour = hour == 0 ? hour = 12 : hour
   var time_cn = time_prefix_cn + String(hour) + ":" + pad(datetime.getMinutes(), 2)
-  var datetime_cn = date_cn + time_cn
-  return datetime_cn
+  return {date:date_cn, time:time_cn}
 }
 
 function datetimeInEnglish(datetime) {
@@ -55,6 +54,7 @@ function datetimeInEnglish(datetime) {
 
 function getForecasts(logFile, timezoneOffset, onClose) {
   var forecasts = [];
+  var previousDate = "";
   readline.createInterface({
     input: fs.createReadStream(logFile),
     terminal: false
@@ -64,7 +64,9 @@ function getForecasts(logFile, timezoneOffset, onClose) {
     var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
     var temp_cn = "气温" + forecast.temp + "°C"
     //console.log(datetime_cn + temp_cn)
-    forecasts.push({time:datetime_cn, temp:temp_cn, info:forecast.info})
+    var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
+    forecasts.push({date:date_cn, time:datetime_cn.time, temp:temp_cn, info:forecast.info})
+    previousDate = datetime_cn.date
   }).on('close', function(){
     onClose(forecasts)
   });
@@ -155,7 +157,7 @@ function router_get(cityIndex, req, res) {
   var timezoneOffset = timezoneOffsetByCityIndex(cityIndex)
   getForecasts(weatherLogFile, timezoneOffset, function(forecasts) {
       var now_cn = datetimeInChinese(new Date(), timezoneOffset)
-      var update_time = "更新于北京时间" + now_cn
+      var update_time = "更新于北京时间" + now_cn.date + now_cn.time
       var today_day = today.getDay()
       var tab_count = 7
       var titles = []
