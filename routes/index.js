@@ -65,7 +65,7 @@ function getForecasts(logFile, timezoneOffset, onClose) {
     var forecast = JSON.parse(line)
     var datetime = new Date(forecast.dt * 1000)
     var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
-    var temp_cn = "气温" + forecast.temp + "°C"
+    var temp_cn = Math.round(forecast.temp) + "°C"
     //console.log(datetime_cn + temp_cn)
     var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
     forecasts.push({date:date_cn, time:datetime_cn.time, temp:temp_cn, info:forecast.info})
