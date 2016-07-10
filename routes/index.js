@@ -10,6 +10,12 @@ function pad(num, size) {
     return s;
 }
 
+function padLeadingSpace(num, size) {
+    var s = num+"";
+    while (s.length < size) s = ' ' + s;
+    return s;
+}
+
 function dayInChinese(day) {
   switch(day){
     case 0:
@@ -43,7 +49,7 @@ function datetimeInChinese(datetime, offset) {
   hour = hour == 0 ? hour = 12 : hour
   var time_cn = time_prefix_cn + String(hour) + ":" + pad(datetime.getMinutes(), 2)
   if (datetime.getMinutes() == 0) {
-    time_cn = time_prefix_cn + String(hour) + "点"
+    time_cn = time_prefix_cn + padLeadingSpace(hour, 2) + "点"
   }
   return {date:date_cn, time:time_cn}
 }
