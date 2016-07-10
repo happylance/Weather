@@ -42,6 +42,9 @@ function datetimeInChinese(datetime, offset) {
   hour = hour > 12 ? hour - 12 : hour
   hour = hour == 0 ? hour = 12 : hour
   var time_cn = time_prefix_cn + String(hour) + ":" + pad(datetime.getMinutes(), 2)
+  if (datetime.getMinutes() == 0) {
+    time_cn = time_prefix_cn + String(hour) + "点"
+  }
   return {date:date_cn, time:time_cn}
 }
 
