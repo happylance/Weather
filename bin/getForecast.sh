@@ -2,6 +2,7 @@
 set -u
 script=$(readlink -f "$0")
 DIR=$(dirname "$script")
+[ -d "$DIR/../data" ] || mkdir "$DIR/../data"
 forecast_log="$DIR/../data/forecast.log"
 . "$HOME/.weatherrc"
 
