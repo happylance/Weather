@@ -31,8 +31,8 @@ function dayInChinese(day) {
   }
 }
 
-function datetimeInChinese(datetime) {
-  datetime = new Date(datetime.getTime() + (datetime.getTimezoneOffset() + 8 * 60) * 60 * 1000)
+function datetimeInChinese(datetime, offset) {
+  datetime = new Date(datetime.getTime() + (datetime.getTimezoneOffset() + offset * 60) * 60 * 1000)
   var date_cn = "周" + dayInChinese(datetime.getDay())
   var hour = datetime.getHours()
   var time_prefix_cn = hour < 12 ? "上午" : "下午"
@@ -53,7 +53,7 @@ function datetimeInEnglish(datetime) {
   return datetime_en
 }
 
-function getForecasts(logFile, onClose) {
+function getForecasts(logFile, timezoneOffset, onClose) {
   var forecasts = [];
   readline.createInterface({
     input: fs.createReadStream(logFile),
@@ -61,9 +61,9 @@ function getForecasts(logFile, onClose) {
   }).on('line', function(line) {
     var forecast = JSON.parse(line)
     var datetime = new Date(forecast.dt * 1000)
-    var datetime_cn = datetimeInChinese(datetime)
+    var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
     var temp_cn = "气温" + forecast.temp + "°C"
-    console.log(datetime_cn + temp_cn)
+    //console.log(datetime_cn + temp_cn)
     forecasts.push({time:datetime_cn, temp:temp_cn, info:forecast.info})
   }).on('close', function(){
     onClose(forecasts)
@@ -111,11 +111,11 @@ function addLogToFile(req_log, accessLogFile) {
   });
 }
 
-function requestForecast(done) {
+function requestForecast(city_id, done) {
   const exec = require('child_process').exec;
   var script = path.join(__dirname, '../bin', 'getForecast.sh');
 
-  exec(`${script}`, (error, stdout, stderr) => {
+  exec(`${script} ${city_id}`, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
       return;
@@ -130,8 +130,21 @@ function requestForecast(done) {
  });
 }
 
-function router_get(req, res) {
-  var weatherLogFile = 'data/forecast.log'
+function timezoneOffsetByCityIndex(index) {
+  var defaultOffset = 8 // Linghai
+  switch (index) {
+    case '0':
+      return defaultOffset
+    case '1':
+      var datetime = new Date()
+      return -datetime.getTimezoneOffset() / 60 // EDT
+    default:
+      return defaultOffset
+  }
+}
+
+function router_get(cityIndex, req, res) {
+  var weatherLogFile = 'data/forecast' + getCityIdByIndex(cityIndex) + '.log'
   var accessLogFile = './access.log'
   var today = new Date()
   var req_log = datetimeInEnglish(today) + ' ' +
@@ -139,8 +152,9 @@ function router_get(req, res) {
   console.log(req_log)
   addLogToFile(req_log, accessLogFile)
 
-  getForecasts(weatherLogFile, function(forecasts) {
-      var now_cn = datetimeInChinese(new Date())
+  var timezoneOffset = timezoneOffsetByCityIndex(cityIndex)
+  getForecasts(weatherLogFile, timezoneOffset, function(forecasts) {
+      var now_cn = datetimeInChinese(new Date(), timezoneOffset)
       var update_time = "更新于北京时间" + now_cn
       var today_day = today.getDay()
       var tab_count = 7
@@ -156,11 +170,31 @@ function router_get(req, res) {
     });
 }
 
+function getCityIdByIndex(index) {
+  var id_Linghai = 2037913
+  switch (index) {
+    case '0':
+      return id_Linghai
+    case '1':
+      return 4758390 // Falls Church
+    default:
+      return id_Linghai
+  }
+}
+
+function router_get_forecast(cityIndex, req, res) {
+  var cityId = getCityIdByIndex(cityIndex)
+  requestForecast(cityId, function(){
+    router_get(cityIndex, req, res)
+  })
+}
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  requestForecast(function(){
-    router_get(req, res)
-  })
+  router_get_forecast(0, req, res)
+});
+
+router.get('/:index', function(req, res, next) {
+  router_get_forecast(req.params.index, req, res)
 });
 
 module.exports = router;
