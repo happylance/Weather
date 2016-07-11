@@ -141,21 +141,9 @@ function requestForecast(city_id, done) {
  });
 }
 
-function timezoneOffsetByCityIndex(index) {
-  var defaultOffset = 8 // Linghai
-  switch (index) {
-    case '0':
-      return defaultOffset
-    case '1':
-      var datetime = new Date()
-      return -datetime.getTimezoneOffset() / 60 // EDT
-    default:
-      return defaultOffset
-  }
-}
-
 function router_get(cityIndex, req, res) {
-  var weatherLogFile = 'data/forecast' + getCityIdByIndex(cityIndex) + '.log'
+  var cityInfo = getCityInfoByIndex(cityIndex)
+  var weatherLogFile = 'data/forecast' + cityInfo.id + '.log'
   var accessLogFile = './access.log'
   var today = new Date()
   var req_log = datetimeInEnglish(today) + ' ' +
@@ -163,7 +151,7 @@ function router_get(cityIndex, req, res) {
   console.log(req_log)
   addLogToFile(req_log, accessLogFile)
 
-  var timezoneOffset = timezoneOffsetByCityIndex(cityIndex)
+  var timezoneOffset = cityInfo.timezoneOffset
   getForecasts(weatherLogFile, timezoneOffset, function(forecasts) {
       var now_cn = datetimeInChinese(new Date(), timezoneOffset)
       var update_time = "更新于北京时间" + now_cn.date + now_cn.time
@@ -181,21 +169,37 @@ function router_get(cityIndex, req, res) {
     });
 }
 
-function getCityIdByIndex(index) {
-  var id_Linghai = 2037913
+function timezoneOffsetByCityIndex(index) {
+  var defaultOffset = 8 // Linghai
   switch (index) {
     case '0':
-      return id_Linghai
+      return defaultOffset
     case '1':
-      return 4758390 // Falls Church
+      var datetime = new Date()
+      return -datetime.getTimezoneOffset() / 60 // EDT
     default:
-      return id_Linghai
+      return defaultOffset
   }
+}
+function getCityInfoByIndex(index) {
+  var id = 2037913 // Linghai
+  var timezoneOffset = 8
+  switch (index) {
+    case '0':
+      break
+    case '1':
+      id = 4758390 // Falls Church
+      var datetime = new Date()
+      timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
+    default:
+      break
+  }
+  return {id:id, timezoneOffset:timezoneOffset}
 }
 
 function router_get_forecast(cityIndex, req, res) {
-  var cityId = getCityIdByIndex(cityIndex)
-  requestForecast(cityId, function(){
+  var cityInfo = getCityInfoByIndex(cityIndex)
+  requestForecast(cityInfo.id, function(){
     router_get(cityIndex, req, res)
   })
 }
