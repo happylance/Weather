@@ -187,7 +187,7 @@ function router_get(cityIndex, req, res) {
   getSunriseAndSunset(weatherLogFile, timezoneOffset, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
         var now_cn = datetimeInChinese(new Date(), timezoneOffset)
-        var update_time = "更新于北京时间" + now_cn.date + now_cn.time
+        var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
         console.log(update_time)
         res.render('index', {forecasts:forecasts, update_time:update_time});
     });
@@ -210,6 +210,7 @@ function timezoneOffsetByCityIndex(index) {
 function getCityInfoByIndex(index) {
   var id = 2037913 // Linghai
   var timezoneOffset = 8
+  var name = "凌海"
   switch (index) {
     case '0':
       break
@@ -217,10 +218,11 @@ function getCityInfoByIndex(index) {
       id = 4758390 // Falls Church
       var datetime = new Date()
       timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
+      name = "Falls Church"
     default:
       break
   }
-  return {id:id, timezoneOffset:timezoneOffset}
+  return {id:id, timezoneOffset:timezoneOffset, name:name}
 }
 
 function router_get_forecast(cityIndex, req, res) {
