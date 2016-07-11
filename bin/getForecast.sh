@@ -1,5 +1,5 @@
 #/bin/sh
-set -u
+set -eu
 script=$(readlink -f "$0")
 DIR=$(dirname "$script")
 [ -d "$DIR/../data" ] || mkdir "$DIR/../data"
