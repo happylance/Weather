@@ -88,7 +88,7 @@ function getForecasts(forecastLogFile, sun, timezoneOffset, onClose) {
     terminal: false
   }).on('line', function(line) {
     var forecast = JSON.parse(line)
-    if (currentSunIndex < 2 && sun[currentSunIndex].dt < forecast.dt) {
+    while (currentSunIndex < 2 && sun[currentSunIndex].dt < forecast.dt) {
       pushForecast(sun[currentSunIndex])
       ++currentSunIndex
     }
