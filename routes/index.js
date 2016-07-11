@@ -61,23 +61,54 @@ function datetimeInEnglish(datetime) {
   return datetime_en
 }
 
-function getForecasts(logFile, timezoneOffset, onClose) {
+function getForecastItem(forecast, previousDate, timezoneOffset){
+  var datetime = new Date(forecast.dt * 1000)
+  var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
+  var temp_cn = ""
+  if ('temp' in forecast) {
+    temp_cn = Math.round(forecast.temp) + "°C"
+  }
+  var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
+  return {date:date_cn, date_cn:datetime_cn.date, time:datetime_cn.time, temp:temp_cn, info:forecast.info}
+}
+
+function getForecasts(forecastLogFile, sun, timezoneOffset, onClose) {
   var forecasts = [];
   var previousDate = "";
+  var currentSunIndex=0
+
+  function pushForecast(forecast) {
+    forecastItem = getForecastItem(forecast, previousDate, timezoneOffset)
+    forecasts.push(forecastItem)
+    previousDate = forecastItem.date_cn
+  }
+
   readline.createInterface({
-    input: fs.createReadStream(logFile),
+    input: fs.createReadStream(forecastLogFile),
     terminal: false
   }).on('line', function(line) {
     var forecast = JSON.parse(line)
-    var datetime = new Date(forecast.dt * 1000)
-    var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
-    var temp_cn = Math.round(forecast.temp) + "°C"
-    //console.log(datetime_cn + temp_cn)
-    var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
-    forecasts.push({date:date_cn, time:datetime_cn.time, temp:temp_cn, info:forecast.info})
-    previousDate = datetime_cn.date
+    if (currentSunIndex < 2 && sun[currentSunIndex].dt < forecast.dt) {
+      pushForecast(sun[currentSunIndex])
+      ++currentSunIndex
+    }
+    pushForecast(forecast)
   }).on('close', function(){
     onClose(forecasts)
+  });
+};
+
+function getSunriseAndSunset(logFile, timezoneOffset, onClose) {
+  var sun = []
+  fs.readFile(logFile, 'utf8', function (err, data) {
+    if (err) {
+      console.log(error)
+      return
+    }
+    var weather = JSON.parse(data)
+    sun.push({dt:weather.sys.sunrise, info:"日出"})
+    sun.push({dt:weather.sys.sunset, info:"日落"})
+    onClose(sun)
   });
 };
 
@@ -143,7 +174,8 @@ function requestForecast(city_id, done) {
 
 function router_get(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
-  var weatherLogFile = 'data/forecast' + cityInfo.id + '.log'
+  var forecastLogFile = 'data/forecast' + cityInfo.id + '.log'
+  var weatherLogFile = 'data/weather' + cityInfo.id + '.log'
   var accessLogFile = './access.log'
   var today = new Date()
   var req_log = datetimeInEnglish(today) + ' ' +
@@ -152,21 +184,15 @@ function router_get(cityIndex, req, res) {
   addLogToFile(req_log, accessLogFile)
 
   var timezoneOffset = cityInfo.timezoneOffset
-  getForecasts(weatherLogFile, timezoneOffset, function(forecasts) {
-      var now_cn = datetimeInChinese(new Date(), timezoneOffset)
-      var update_time = "更新于北京时间" + now_cn.date + now_cn.time
-      var today_day = today.getDay()
-      var tab_count = 7
-      var titles = []
-      for (var i = 0; i < tab_count; i++) {
-          var day = today_day - i
-          if (day < 0) day += 7
-          var day_cn = "周" + dayInChinese(day)
-          titles.push(day_cn)
-      }
-      console.log(update_time)
-      res.render('index', {forecasts:forecasts, update_time:update_time});
+  getSunriseAndSunset(weatherLogFile, timezoneOffset, function(sun){
+    getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
+        var now_cn = datetimeInChinese(new Date(), timezoneOffset)
+        var update_time = "更新于北京时间" + now_cn.date + now_cn.time
+        console.log(update_time)
+        res.render('index', {forecasts:forecasts, update_time:update_time});
     });
+  })
+
 }
 
 function timezoneOffsetByCityIndex(index) {
