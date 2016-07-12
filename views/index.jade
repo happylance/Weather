@@ -13,9 +13,11 @@ body
           td
             body #{forecast.time}
           td
-            body  #{forecast.temp}
+            body #{forecast.temp}
           td
-            body  #{forecast.info}
+            body #{forecast.info}  
+          td
+            body #{forecast.wind}
 
   p #{update_time}
   p 天气数据来源于#[a(href ="http://openweathermap.org/api") OpenWeatherMap]免费天气API

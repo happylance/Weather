@@ -3,6 +3,9 @@ var router = express.Router();
 var fs = require('fs')
 var readline = require('readline');
 var path = require('path');
+var beaufort = require('beaufort')
+
+var options = {unit: 'mps', getName: false};
 
 function pad(num, size) {
     var s = num+"";
@@ -68,8 +71,17 @@ function getForecastItem(forecast, previousDate, timezoneOffset){
   if ('temp' in forecast) {
     temp_cn = Math.round(forecast.temp) + "°C"
   }
+
+  var wind_cn = ""
+  if ('wind_s' in forecast) {
+    var level = beaufort(forecast.wind_s, options)
+    if (level > 2) {
+      wind_cn = "风力" + level + "级"
+    }
+  }
+
   var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
-  return {date:date_cn, date_cn:datetime_cn.date, time:datetime_cn.time, temp:temp_cn, info:forecast.info}
+  return {date:date_cn, date_cn:datetime_cn.date, time:datetime_cn.time, temp:temp_cn, info:forecast.info, wind:wind_cn}
 }
 
 function getForecasts(forecastLogFile, sun, timezoneOffset, onClose) {
