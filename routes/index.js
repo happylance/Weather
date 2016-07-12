@@ -6,6 +6,7 @@ var path = require('path');
 var beaufort = require('beaufort')
 
 var options = {unit: 'mps', getName: false};
+var error_prefix = '对不起，出错了，请重试。如果一直不好，需要等亮来修。'
 
 function pad(num, size) {
     var s = num+"";
@@ -110,14 +111,21 @@ function getForecasts(forecastLogFile, sun, timezoneOffset, onClose) {
   });
 };
 
-function getSunriseAndSunset(logFile, timezoneOffset, onClose) {
+function getSunriseAndSunset(logFile, timezoneOffset, res, onClose) {
   var sun = []
   fs.readFile(logFile, 'utf8', function (err, data) {
     if (err) {
-      console.log(error)
+      console.log(err)
+      res.send(error_prefix + err);
       return
     }
     var weather = JSON.parse(data)
+    if (! ('sys' in weather)) {
+      var err = 'Cannot find sys in weather.'
+      console.log(err)
+      res.send(error_prefix + err);
+      return
+    }
     sun.push({dt:weather.sys.sunrise, info:"日出"})
     sun.push({dt:weather.sys.sunset, info:"日落"})
     onClose(sun)
@@ -196,7 +204,7 @@ function router_get(cityIndex, req, res) {
   addLogToFile(req_log, accessLogFile)
 
   var timezoneOffset = cityInfo.timezoneOffset
-  getSunriseAndSunset(weatherLogFile, timezoneOffset, function(sun){
+  getSunriseAndSunset(weatherLogFile, timezoneOffset, res, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
         var now_cn = datetimeInChinese(new Date(), timezoneOffset)
         var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
