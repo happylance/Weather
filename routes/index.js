@@ -76,7 +76,7 @@ function getForecastItem(forecast, previousDate, timezoneOffset){
   if ('wind_s' in forecast) {
     var level = beaufort(forecast.wind_s, options)
     if (level > 2) {
-      wind_cn = "风力" + level + "级"
+      wind_cn = level + "级风"
     }
   }
 
