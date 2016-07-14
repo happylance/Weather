@@ -209,7 +209,13 @@ function router_get(cityIndex, req, res) {
         var now_cn = datetimeInChinese(new Date(), timezoneOffset)
         var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
         console.log(update_time)
-        res.render('index', {forecasts:forecasts, update_time:update_time});
+
+        var tab_count = 3
+        var titles = []
+        for (var i = 0; i < tab_count; i++) {
+            titles.push(getCityInfoByIndex(String(i)).name)
+        }
+        res.render('index', {forecasts:forecasts, update_time:update_time, currentURL:"/" + cityIndex, titles:titles});
     });
   })
 
@@ -235,6 +241,10 @@ function getCityInfoByIndex(index) {
     case '0':
       break
     case '1':
+      id = 2035513 // Panshan
+      name = "盘山"
+      break
+    case '2':
       id = 4758390 // Falls Church
       var datetime = new Date()
       timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
