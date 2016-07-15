@@ -287,6 +287,13 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
     }
   }
   var wind_cn = ""
+  if ('windSpeed' in forecast) {
+    var level = beaufort(forecast.windSpeed * 1.6 / 3.6, options)
+    console.log(forecast.windSpeed + ' ' + level)
+    if (level > 2) {
+      wind_cn = level + "级风"
+    }
+  }
   var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
   var time_prefix_cn = (datetime_cn.time_prefix == previousTimePrefix) ? "" : datetime_cn.time_prefix
   var simple_datetime = {date:date_cn, time_prefix:time_prefix_cn, time:datetime_cn.time}
@@ -325,7 +332,7 @@ function renderJson2(data, cityIndex, res) {
     var forecast = data[i]
     pushForecast(forecast)
   }
-  
+
   render(forecasts, cityIndex, res)
 }
 function router_get_forecast2(cityIndex, req, res) {
