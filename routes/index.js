@@ -19,7 +19,6 @@ fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) 
   }
   source_url_key_1 = data.split('\n')[0];
   source_url_prefix_1 = "https://api.forecast.io/forecast/" + source_url_key_1 + "/"
-  console.log(source_url_prefix_1)
 })
 
 function pad(num, size) {
@@ -152,8 +151,10 @@ function getSunriseAndSunset(logFile, timezoneOffset, res, onClose) {
 
 // Get client IP address from request object ----------------------
 getClientAddress = function (req) {
-        return (req.headers['x-forwarded-for'] || '').split(',')[0]
-          || req.connection.remoteAddress;
+  var addr =  (req.headers['x-forwarded-for'] || '').split(',')[0] || req.connection.remoteAddress;
+  addr = addr.replace(/::ffff:/, '')
+  console.log(addr)
+  return addr
 };
 
 function addLogToFile(req_log, accessLogFile) {
@@ -236,13 +237,11 @@ function render(forecasts, cityIndex, res) {
       titles.push(getCityInfoByIndex(String(i)).name)
   }
   var source = cityInfo.source
-  console.log(forecasts)
   res.render('index', {forecasts:forecasts, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
 }
 
 function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset){
   var datetime = new Date(forecast.time * 1000)
-  console.log(datetime, forecast.time)
   var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
   var temp_cn = ""
   if ('temperature' in forecast) {
@@ -274,7 +273,6 @@ function renderJson2(data, cityIndex, res) {
 
   function pushForecast(forecast) {
     forecastItem = getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset)
-    console.log(previousDate, timezoneOffset)
     forecasts.push(forecastItem)
     previousDate = forecastItem.datetime.date
     previousTimePrefix = forecastItem.datetime.time_prefix
@@ -310,7 +308,6 @@ function router_get_forecast2(cityIndex, req, res) {
     json: true
   }, function (error, response, body) {
     if (!error && response.statusCode === 200) {
-      console.log(body)
       renderJson2(body, cityIndex, res)
     } else {
       console.log(error)
@@ -371,8 +368,11 @@ function router_get_forecast(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
   var accessLogFile = './access.log'
   var today = new Date()
-  var req_log = datetimeInEnglish(today) + ' ' + cityIndex + ' '
-    getClientAddress(req) + ' ' + req.headers['user-agent']
+  var user_agent = req.headers['user-agent']
+  user_agent = user_agent.replace(/Mozilla\/5\.0 \(/, "")
+  user_agent = user_agent.replace(/like Mac OS X\) AppleWebKit\/601\.1\.46 \(KHTML, like Gecko\) Mobile\/13F69/, "")
+  user_agent = user_agent.replace(/; CPU.*OS/, "")
+  var req_log = datetimeInEnglish(today) + ' ' + cityIndex + ' ' + getClientAddress(req) + ' ' + user_agent
   console.log(req_log)
   addLogToFile(req_log, accessLogFile)
 
