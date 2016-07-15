@@ -252,10 +252,38 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
   }
 
   var info_cn = ""
+  if ('summary' in forecast) {
+    var summary = forecast.summary
+    switch (summary) {
+      case 'Overcast':
+        info_cn = "阴"
+        break;
+      case 'Drizzle':
+        info_cn = "细雨"
+        break;
+      case 'Light Rain':
+        info_cn = "小雨"
+        break;
+      case 'Clear':
+        info_cn = "晴"
+        break;
+      case 'Partly Cloudy':
+        info_cn = "少云"
+        break;
+      case 'Mostly Cloudy':
+        info_cn = "多云"
+        break;
+      case 'Rain':
+        info_cn = "中雨"
+        break;
+      default:
+    }
+  }
+
   if ('precipProbability' in forecast) {
     var precipProbability = Math.round(forecast.precipProbability*100)
-    if (precipProbability > 0) {
-      info_cn = "降水概率" + precipProbability + '%'
+    if (precipProbability >= 20) {
+      info_cn = info_cn + precipProbability + '%'
     }
   }
   var wind_cn = ""
@@ -297,7 +325,7 @@ function renderJson2(data, cityIndex, res) {
     var forecast = data[i]
     pushForecast(forecast)
   }
-
+  
   render(forecasts, cityIndex, res)
 }
 function router_get_forecast2(cityIndex, req, res) {
