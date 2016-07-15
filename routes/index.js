@@ -4,9 +4,23 @@ var fs = require('fs')
 var readline = require('readline');
 var path = require('path');
 var beaufort = require('beaufort')
+var request = require("request")
 
 var options = {unit: 'mps', getName: false};
 var error_prefix = '对不起，出错了，请重试。如果一直不好，需要等亮来修。'
+
+var source_url_prefix_1 = ""
+var source_url_key_1 = ""
+fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) {
+  if (err) {
+    console.log(err)
+    res.send(error_prefix + err);
+    return
+  }
+  source_url_key_1 = data.split('\n')[0];
+  source_url_prefix_1 = "https://api.forecast.io/forecast/" + source_url_key_1 + "/"
+  console.log(source_url_prefix_1)
+})
 
 function pad(num, size) {
     var s = num+"";
@@ -51,11 +65,11 @@ function datetimeInChinese(datetime, offset) {
   if (hour > 17) time_prefix_cn = "晚上"
   hour = hour > 12 ? hour - 12 : hour
   hour = hour == 0 ? hour = 12 : hour
-  var time_cn = time_prefix_cn + String(hour) + ":" + pad(datetime.getMinutes(), 2)
+  var time_cn = String(hour) + ":" + pad(datetime.getMinutes(), 2)
   if (datetime.getMinutes() == 0) {
-    time_cn = time_prefix_cn + padLeadingSpace(hour, 2) + "点"
+    time_cn = padLeadingSpace(hour, 2) + "点"
   }
-  return {date:date_cn, time:time_cn}
+  return {date:date_cn, time_prefix:time_prefix_cn, time:time_cn}
 }
 
 function datetimeInEnglish(datetime) {
@@ -65,7 +79,7 @@ function datetimeInEnglish(datetime) {
   return datetime_en
 }
 
-function getForecastItem(forecast, previousDate, timezoneOffset){
+function getForecastItem(forecast, previousDate, previousTimePrefix, timezoneOffset){
   var datetime = new Date(forecast.dt * 1000)
   var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
   var temp_cn = ""
@@ -82,18 +96,22 @@ function getForecastItem(forecast, previousDate, timezoneOffset){
   }
 
   var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
-  return {date:date_cn, date_cn:datetime_cn.date, time:datetime_cn.time, temp:temp_cn, info:forecast.info, wind:wind_cn}
+  var time_prefix_cn = (datetime_cn.time_prefix == previousTimePrefix) ? "" : datetime_cn.time_prefix
+  var simple_datetime = {date:date_cn, time_prefix:time_prefix_cn, time:datetime_cn.time}
+  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:forecast.info, wind:wind_cn}
 }
 
 function getForecasts(forecastLogFile, sun, timezoneOffset, onClose) {
   var forecasts = [];
-  var previousDate = "";
+  var previousDate = ""
+  var previousTimePrefix = ""
   var currentSunIndex=0
 
   function pushForecast(forecast) {
-    forecastItem = getForecastItem(forecast, previousDate, timezoneOffset)
+    forecastItem = getForecastItem(forecast, previousDate, previousTimePrefix, timezoneOffset)
     forecasts.push(forecastItem)
-    previousDate = forecastItem.date_cn
+    previousDate = forecastItem.datetime.date
+    previousTimePrefix = forecastItem.datetime.time_prefix
   }
 
   readline.createInterface({
@@ -121,7 +139,7 @@ function getSunriseAndSunset(logFile, timezoneOffset, res, onClose) {
     }
     var weather = JSON.parse(data)
     if (! ('sys' in weather)) {
-      var err = 'Cannot find sys in weather.'
+      var err = 'Cannot find sys in weather.' + data
       console.log(err)
       res.send(error_prefix + err);
       return
@@ -206,57 +224,162 @@ function router_get(cityIndex, req, res) {
   var timezoneOffset = cityInfo.timezoneOffset
   getSunriseAndSunset(weatherLogFile, timezoneOffset, res, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
-        var now_cn = datetimeInChinese(new Date(), timezoneOffset)
-        var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
-        console.log(update_time)
-
-        var tab_count = 3
-        var titles = []
-        for (var i = 0; i < tab_count; i++) {
-            titles.push(getCityInfoByIndex(String(i)).name)
-        }
-        res.render('index', {forecasts:forecasts, update_time:update_time, currentURL:"/" + cityIndex, titles:titles});
+        render(forecasts, cityIndex, res)
     });
   })
 
 }
 
-function timezoneOffsetByCityIndex(index) {
-  var defaultOffset = 8 // Linghai
-  switch (index) {
-    case '0':
-      return defaultOffset
-    case '1':
-      var datetime = new Date()
-      return -datetime.getTimezoneOffset() / 60 // EDT
-    default:
-      return defaultOffset
+function render(forecasts, cityIndex, res) {
+  var cityInfo = getCityInfoByIndex(cityIndex)
+  var timezoneOffset = cityInfo.timezoneOffset
+  var now_cn = datetimeInChinese(new Date(), timezoneOffset)
+  var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
+  console.log(update_time)
+
+  var tab_count = 5
+  var titles = []
+  for (var i = 0; i < tab_count; i++) {
+      titles.push(getCityInfoByIndex(String(i)).name)
   }
+  var source = cityInfo.source
+  console.log(forecasts)
+  res.render('index', {forecasts:forecasts, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
 }
+
+function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset){
+  var datetime = new Date(forecast.time * 1000)
+  console.log(datetime, forecast.time)
+  var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
+  var temp_cn = ""
+  if ('temperature' in forecast) {
+    temp_cn = Math.round((forecast.temperature - 32) * 5 / 9) + "°C"
+    if (timezoneOffset == -4) {
+      temp_cn = Math.round(forecast.temperature) + "°F" + temp_cn
+    }
+  }
+
+  var info_cn = ""
+  if ('precipProbability' in forecast) {
+    var precipProbability = Math.round(forecast.precipProbability*100)
+    if (precipProbability > 0) {
+      info_cn = "降水概率" + precipProbability + '%'
+    }
+  }
+  var wind_cn = ""
+  var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
+  var time_prefix_cn = (datetime_cn.time_prefix == previousTimePrefix) ? "" : datetime_cn.time_prefix
+  var simple_datetime = {date:date_cn, time_prefix:time_prefix_cn, time:datetime_cn.time}
+  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, wind:wind_cn}
+}
+
+function renderJson2(data, cityIndex, res) {
+  var forecasts = []
+  var previousDate = "";
+  var previousTimePrefix = ""
+  var timezoneOffset = getCityInfoByIndex(cityIndex).timezoneOffset
+
+  function pushForecast(forecast) {
+    forecastItem = getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset)
+    console.log(previousDate, timezoneOffset)
+    forecasts.push(forecastItem)
+    previousDate = forecastItem.datetime.date
+    previousTimePrefix = forecastItem.datetime.time_prefix
+  }
+
+  var weather = data
+  if (! ('hourly' in weather)) {
+    var err = 'Cannot find hourly in weather.' + data
+    console.log(err)
+    res.send(error_prefix + err);
+    return
+  }
+  if (! ('data' in weather.hourly)) {
+    var err = 'Cannot find data in weather.hourly.'
+    console.log(err)
+    res.send(error_prefix + err);
+    return
+  }
+
+  var data = weather.hourly.data
+  for (var i = 0; i < data.length; i++) {
+    var forecast = data[i]
+    pushForecast(forecast)
+  }
+
+  render(forecasts, cityIndex, res)
+}
+function router_get_forecast2(cityIndex, req, res) {
+  var cityInfo = getCityInfoByIndex(cityIndex)
+
+  request({
+    url: source_url_prefix_1 + cityInfo.id,
+    json: true
+  }, function (error, response, body) {
+    if (!error && response.statusCode === 200) {
+      console.log(body)
+      renderJson2(body, cityIndex, res)
+    } else {
+      console.log(error)
+      res.send(error_prefix + error + response.statusCode);
+    }
+  })
+
+  return
+
+  var logFile = (+cityIndex == 0) ? 'data/qn.log' : 'data/fc.log'
+  fs.readFile(logFile, 'utf8', function (err, data) {
+    if (err) {
+      console.log(err)
+      res.send(error_prefix + err);
+      return
+    }
+    renderJson2(data, cityIndex, res)
+  });
+}
+
 function getCityInfoByIndex(index) {
   var id = 2037913 // Linghai
   var timezoneOffset = 8
   var name = "凌海"
-  switch (index) {
-    case '0':
+  var source = 0
+  switch (+index) {
+    case 0:
+      id = "41.059204,121.6055323"
+      name = "巧女"
+      source = 1
       break
-    case '1':
+    case 1:
+      break
+    case 2:
       id = 2035513 // Panshan
       name = "盘山"
       break
-    case '2':
+    case 3:
       id = 4758390 // Falls Church
       var datetime = new Date()
       timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
-      name = "Falls Church"
+      name = "FC"
+      break
+    case 4:
+      id = "38.91607726,-77.20676137"
+      name = "CD"
+      var datetime = new Date()
+      timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
+      source = 1
+      break
     default:
       break
   }
-  return {id:id, timezoneOffset:timezoneOffset, name:name}
+  return {id:id, timezoneOffset:timezoneOffset, name:name, source:source}
 }
 
 function router_get_forecast(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
+  if (cityInfo.source == 1) {
+    router_get_forecast2(cityIndex, req, res)
+    return
+  }
   requestForecast(cityInfo.id, function(){
     router_get(cityIndex, req, res)
   })
