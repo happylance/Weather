@@ -214,13 +214,6 @@ function router_get(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
   var forecastLogFile = 'data/forecast' + cityInfo.id + '.log'
   var weatherLogFile = 'data/weather' + cityInfo.id + '.log'
-  var accessLogFile = './access.log'
-  var today = new Date()
-  var req_log = datetimeInEnglish(today) + ' ' +
-    getClientAddress(req) + ' ' + req.headers['user-agent']
-  console.log(req_log)
-  addLogToFile(req_log, accessLogFile)
-
   var timezoneOffset = cityInfo.timezoneOffset
   getSunriseAndSunset(weatherLogFile, timezoneOffset, res, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
@@ -375,6 +368,14 @@ function getCityInfoByIndex(index) {
 }
 
 function router_get_forecast(cityIndex, req, res) {
+  var cityInfo = getCityInfoByIndex(cityIndex)
+  var accessLogFile = './access.log'
+  var today = new Date()
+  var req_log = datetimeInEnglish(today) + ' ' + cityIndex + ' '
+    getClientAddress(req) + ' ' + req.headers['user-agent']
+  console.log(req_log)
+  addLogToFile(req_log, accessLogFile)
+
   var cityInfo = getCityInfoByIndex(cityIndex)
   if (cityInfo.source == 1) {
     router_get_forecast2(cityIndex, req, res)
