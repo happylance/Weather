@@ -28,6 +28,21 @@ var cities = [{id:"41.059204,121.6055323",name:"巧女",source:1,timezoneOffset:
     {id:4758390,name:"FC",source:0,timezoneOffset:getEDTTimezoneOffset},
     {id:"38.91607726,-77.20676137",name:"CD",source:1,timezoneOffset:getEDTTimezoneOffset}]
 
+var days_cn = ["日","一","二","三","四","五","六"]
+function dayInChinese(day) {
+  return days_cn[day]
+}
+
+var forecast_summary = {'Overcast':"阴",
+    'Drizzle':"细雨",
+    'Overcast':"阴",
+    'Light Rain':"小雨",
+    'Clear':"晴",
+    'Partly Cloudy':"少云",
+    'Mostly Cloudy':"多云",
+    'Rain':"中雨"
+  }
+
 var source_url_prefix_1 = ""
 var source_url_key_1 = ""
 fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) {
@@ -50,27 +65,6 @@ function padLeadingSpace(num, size) {
     var s = num+"";
     while (s.length < size) s = ' ' + s;
     return s;
-}
-
-function dayInChinese(day) {
-  switch(day){
-    case 0:
-        return "日";
-    case 1:
-        return "一";
-    case 2:
-        return "二";
-    case 3:
-        return "三";
-    case 4:
-        return "四";
-    case 5:
-        return "五";
-    case 6:
-        return "六";
-    default:
-        return "";
-  }
 }
 
 function datetimeInChinese(datetime, offset) {
@@ -274,29 +268,8 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
   var info_cn = ""
   if ('summary' in forecast) {
     var summary = forecast.summary
-    switch (summary) {
-      case 'Overcast':
-        info_cn = "阴"
-        break;
-      case 'Drizzle':
-        info_cn = "细雨"
-        break;
-      case 'Light Rain':
-        info_cn = "小雨"
-        break;
-      case 'Clear':
-        info_cn = "晴"
-        break;
-      case 'Partly Cloudy':
-        info_cn = "少云"
-        break;
-      case 'Mostly Cloudy':
-        info_cn = "多云"
-        break;
-      case 'Rain':
-        info_cn = "中雨"
-        break;
-      default:
+    if (summary in forecast_summary) {
+      info_cn = forecast_summary[summary]
     }
   }
 
