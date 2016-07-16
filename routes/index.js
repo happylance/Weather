@@ -13,7 +13,7 @@ var wind_directions = ['北', '东北偏北', '东北','东北偏东',
     '南','西南偏南', '西南', '西南偏西',
     '西', '西北偏西', '西北', '西北偏北']
 function getWindDirectionName(windBearing) {
-  var windIndex = (Math.round((windBearing + 11.25) / 22.5) % 16)
+  var windIndex = (Math.floor((windBearing + 11.25) / 22.5) % 16)
   return wind_directions[windIndex] + '风'
 }
 
