@@ -8,6 +8,10 @@ var request = require("request")
 
 var options = {unit: 'mps', getName: false};
 var error_prefix = '对不起，出错了，请重试。如果一直不好，需要等亮来修。'
+var wind_directions = ['北', '东北偏北', '东北','东北偏东',
+    '东', '东南偏东','东南', '东南偏南',
+    '南','西南偏南', '西南', '西南偏西',
+    '西', '西北偏西', '西北', '西北偏北']
 
 var source_url_prefix_1 = ""
 var source_url_key_1 = ""
@@ -289,9 +293,14 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
   var wind_cn = ""
   if ('windSpeed' in forecast) {
     var level = beaufort(forecast.windSpeed * 1.6 / 3.6, options)
-    console.log(forecast.windSpeed + ' ' + level)
     if (level > 2) {
-      wind_cn = level + "级风"
+      if ('windBearing' in forecast) {
+        var windIndex = (Math.round((forecast.windBearing + 11.25) / 22.5) % 16)
+        var windDirectionName = wind_directions[windIndex]
+        wind_cn = level + "级" + windDirectionName + "风"
+      } else {
+        wind_cn = level + "级风"
+      }
     }
   }
   var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
