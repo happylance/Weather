@@ -12,6 +12,10 @@ var wind_directions = ['北', '东北偏北', '东北','东北偏东',
     '东', '东南偏东','东南', '东南偏南',
     '南','西南偏南', '西南', '西南偏西',
     '西', '西北偏西', '西北', '西北偏北']
+function getWindDirectionName(windBearing) {
+  var windIndex = (Math.round((windBearing + 11.25) / 22.5) % 16)
+  return wind_directions[windIndex] + '风'
+}
 
 function getEDTTimezoneOffset() {
   var datetime = new Date()
@@ -100,10 +104,10 @@ function getForecastItem(forecast, previousDate, previousTimePrefix, timezoneOff
   }
 
   var wind_cn = ""
-  if ('wind_s' in forecast) {
+  if ('wind_s' in forecast && 'wind_d' in forecast) {
     var level = beaufort(forecast.wind_s, options)
     if (level > 2) {
-      wind_cn = level + "级风"
+      wind_cn = level + "级" + getWindDirectionName(forecast.wind_d)
     }
   }
 
@@ -284,9 +288,7 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
     var level = beaufort(forecast.windSpeed * 1.6 / 3.6, options)
     if (level > 2) {
       if ('windBearing' in forecast) {
-        var windIndex = (Math.round((forecast.windBearing + 11.25) / 22.5) % 16)
-        var windDirectionName = wind_directions[windIndex]
-        wind_cn = level + "级" + windDirectionName + "风"
+        wind_cn = level + "级" + getWindDirectionName(forecast.windBearing)
       } else {
         wind_cn = level + "级风"
       }
