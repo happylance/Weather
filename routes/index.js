@@ -13,6 +13,21 @@ var wind_directions = ['北', '东北偏北', '东北','东北偏东',
     '南','西南偏南', '西南', '西南偏西',
     '西', '西北偏西', '西北', '西北偏北']
 
+function getEDTTimezoneOffset() {
+  var datetime = new Date()
+  return -datetime.getTimezoneOffset() / 60 // EDT
+}
+function getCNTimezoneOffset() {
+  return 8
+}
+var cities = [{id:"41.059204,121.6055323",name:"巧女",source:1,timezoneOffset:getCNTimezoneOffset},
+    {id:"41.095317,121.3422523",name:"凌海1",source:1,timezoneOffset:getCNTimezoneOffset},
+    {id:"41.312864,122.3147513",name:"盘山1",source:1,timezoneOffset:getCNTimezoneOffset},
+    {id:2037913,name:"凌海",source:0,timezoneOffset:getCNTimezoneOffset},
+    {id:2035513,name:"盘山",source:0,timezoneOffset:getCNTimezoneOffset},
+    {id:4758390,name:"FC",source:0,timezoneOffset:getEDTTimezoneOffset},
+    {id:"38.91607726,-77.20676137",name:"CD",source:1,timezoneOffset:getEDTTimezoneOffset}]
+
 var source_url_prefix_1 = ""
 var source_url_key_1 = ""
 fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) {
@@ -219,7 +234,7 @@ function router_get(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
   var forecastLogFile = 'data/forecast' + cityInfo.id + '.log'
   var weatherLogFile = 'data/weather' + cityInfo.id + '.log'
-  var timezoneOffset = cityInfo.timezoneOffset
+  var timezoneOffset = cityInfo.timezoneOffset()
   getSunriseAndSunset(weatherLogFile, timezoneOffset, res, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
         render(forecasts, cityIndex, res)
@@ -230,12 +245,13 @@ function router_get(cityIndex, req, res) {
 
 function render(forecasts, cityIndex, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
-  var timezoneOffset = cityInfo.timezoneOffset
+  var timezoneOffset = cityInfo.timezoneOffset()
+  console.log(timezoneOffset);
   var now_cn = datetimeInChinese(new Date(), timezoneOffset)
   var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time
   console.log(update_time)
 
-  var tab_count = 5
+  var tab_count = cities.length
   var titles = []
   for (var i = 0; i < tab_count; i++) {
       titles.push(getCityInfoByIndex(String(i)).name)
@@ -313,7 +329,7 @@ function renderJson2(data, cityIndex, res) {
   var forecasts = []
   var previousDate = "";
   var previousTimePrefix = ""
-  var timezoneOffset = getCityInfoByIndex(cityIndex).timezoneOffset
+  var timezoneOffset = getCityInfoByIndex(cityIndex).timezoneOffset()
 
   function pushForecast(forecast) {
     forecastItem = getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset)
@@ -373,39 +389,7 @@ function router_get_forecast2(cityIndex, req, res) {
 }
 
 function getCityInfoByIndex(index) {
-  var id = 2037913 // Linghai
-  var timezoneOffset = 8
-  var name = "凌海"
-  var source = 0
-  switch (+index) {
-    case 0:
-      id = "41.059204,121.6055323"
-      name = "巧女"
-      source = 1
-      break
-    case 1:
-      break
-    case 2:
-      id = 2035513 // Panshan
-      name = "盘山"
-      break
-    case 3:
-      id = 4758390 // Falls Church
-      var datetime = new Date()
-      timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
-      name = "FC"
-      break
-    case 4:
-      id = "38.91607726,-77.20676137"
-      name = "CD"
-      var datetime = new Date()
-      timezoneOffset = -datetime.getTimezoneOffset() / 60 // EDT
-      source = 1
-      break
-    default:
-      break
-  }
-  return {id:id, timezoneOffset:timezoneOffset, name:name, source:source}
+  return cities[index]
 }
 
 function router_get_forecast(cityIndex, req, res) {
