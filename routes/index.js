@@ -45,14 +45,14 @@ var forecast_summary = {'Overcast':"阴",
     'Partly Cloudy':"少云",
     'Mostly Cloudy':"多云",
     'Rain':"中雨",
-    'heavy rain':"大雨",
-    'light sleet':"小雨夹雪",
-    'sleet':"雨夹雪",
-    'heavy sleet':"大雨夹雪",
-    'foggy':"雾",
-    'light snow':"小雪",
-    'snow':"中雪",
-    'heavy snow':"大雪"
+    'Heavy Rain':"大雨",
+    'Light Sleet':"小雨夹雪",
+    'Sleet':"雨夹雪",
+    'Heavy Sleet':"大雨夹雪",
+    'Foggy':"雾",
+    'Light Snow':"小雪",
+    'Snow':"中雪",
+    'Heavy Snow':"大雪"
   }
 
 var source_url_prefix_1 = ""
@@ -282,6 +282,8 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
     var summary = forecast.summary
     if (summary in forecast_summary) {
       info_cn = forecast_summary[summary]
+    } else {
+      console.log(forecast.summary)
     }
   }
 
