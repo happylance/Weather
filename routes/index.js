@@ -44,7 +44,15 @@ var forecast_summary = {'Overcast':"阴",
     'Clear':"晴",
     'Partly Cloudy':"少云",
     'Mostly Cloudy':"多云",
-    'Rain':"中雨"
+    'Rain':"中雨",
+    'heavy rain':"大雨",
+    'light sleet':"小雨夹雪",
+    'sleet':"雨夹雪",
+    'heavy sleet':"大雨夹雪",
+    'foggy':"雾",
+    'light snow':"小雪",
+    'snow':"中雪",
+    'heavy snow':"大雪"
   }
 
 var source_url_prefix_1 = ""
