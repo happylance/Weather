@@ -291,6 +291,12 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
     var precipProbability = Math.round(forecast.precipProbability*100)
     if (precipProbability >= 20) {
       info_cn = info_cn + precipProbability + '%'
+      if ('precipIntensity' in forecast) {
+        var precipIntensity = Math.round(forecast.precipIntensity*25.4)
+        if (precipIntensity > 0) {
+          info_cn = info_cn + precipIntensity + 'mm'
+        }
+      }
     }
   }
   var wind_cn = ""
