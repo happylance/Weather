@@ -37,22 +37,21 @@ function dayInChinese(day) {
   return days_cn[day]
 }
 
-var forecast_summary = {'Overcast':"阴",
-    'Drizzle':"细雨",
-    'Overcast':"阴",
+var forecast_summary = {'多云转阴':"阴",
+    '毛毛雨':"细雨",
     'Light Rain':"小雨",
-    'Clear':"晴",
-    'Partly Cloudy':"少云",
+    '晴朗':"晴",
+    '局部多云':"少云",
     'Mostly Cloudy':"多云",
-    'Rain':"中雨",
-    'Heavy Rain':"大雨",
-    'Light Sleet':"小雨夹雪",
+    '降雨':"中雨",
+    '倾盆大雨':"大雨",
+    '轻微的雨夹雪':"小雨夹雪",
     'Sleet':"雨夹雪",
-    'Heavy Sleet':"大雨夹雪",
-    'Foggy':"雾",
+    '较强的雨夹雪':"大雨夹雪",
+    '有雾':"雾",
     'Light Snow':"小雪",
-    'Snow':"中雪",
-    'Heavy Snow':"大雪"
+    '降雪':"中雪",
+    '鹅毛大雪':"大雪"
   }
 
 var source_url_prefix_1 = ""
@@ -243,13 +242,13 @@ function router_get(cityIndex, req, res) {
   var timezoneOffset = cityInfo.timezoneOffset()
   getSunriseAndSunset(weatherLogFile, timezoneOffset, res, function(sun){
     getForecasts(forecastLogFile, sun, timezoneOffset, function(forecasts) {
-        render(forecasts, cityIndex, res)
+        render(forecasts, "", cityIndex, res)
     });
   })
 
 }
 
-function render(forecasts, cityIndex, res) {
+function render(forecasts, daily, cityIndex, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
   var timezoneOffset = cityInfo.timezoneOffset()
   console.log(timezoneOffset);
@@ -263,7 +262,11 @@ function render(forecasts, cityIndex, res) {
       titles.push(getCityInfoByIndex(String(i)).name)
   }
   var source = cityInfo.source
-  res.render('index', {forecasts:forecasts, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
+  res.render('index', {forecasts:forecasts, daily:daily, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
+}
+
+function getTemperatureInC(temperature) {
+  return Math.round((temperature - 32) * 5 / 9)
 }
 
 function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset){
@@ -271,7 +274,7 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
   var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
   var temp_cn = ""
   if ('temperature' in forecast) {
-    temp_cn = Math.round((forecast.temperature - 32) * 5 / 9) + "°C"
+    temp_cn = getTemperatureInC(forecast.temperature) + "°C"
     if (timezoneOffset == -4) {
       temp_cn = Math.round(forecast.temperature) + "°F" + temp_cn
     }
@@ -283,7 +286,7 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
     if (summary in forecast_summary) {
       info_cn = forecast_summary[summary]
     } else {
-      console.log(forecast.summary)
+      info_cn = summary
     }
   }
 
@@ -316,8 +319,60 @@ function getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOf
   return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, wind:wind_cn}
 }
 
+function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezoneOffset){
+  var datetime = new Date(forecast.time * 1000)
+  var datetime_cn = datetimeInChinese(datetime, timezoneOffset)
+
+  var info_cn = ""
+  if ('summary' in forecast) {
+    var summary = forecast.summary
+    if (summary in forecast_summary) {
+      info_cn = forecast_summary[summary]
+    } else {
+      info_cn = summary
+    }
+  }
+
+  var temp_cn =""
+  if ('temperatureMin' in forecast && 'temperatureMax' in forecast) {
+    var temp_min = getTemperatureInC(forecast.temperatureMin)
+    var temp_max = getTemperatureInC(forecast.temperatureMax)
+    temp_cn = temp_min + '～' + temp_max + "°C"
+  }
+
+  if ('precipProbability' in forecast) {
+    var precipProbability = Math.round(forecast.precipProbability*100)
+    if (precipProbability >= 20) {
+      info_cn = info_cn + precipProbability + '%'
+      if ('precipIntensity' in forecast) {
+        var precipIntensity = Math.round(forecast.precipIntensity*25.4)
+        if (precipIntensity > 0) {
+          info_cn = info_cn + precipIntensity + 'mm'
+        }
+      }
+    }
+  }
+  var wind_cn = ""
+  if ('windSpeed' in forecast) {
+    var level = beaufort(forecast.windSpeed * 1.6 / 3.6, options)
+    if (level > 2) {
+      if ('windBearing' in forecast) {
+        wind_cn = level + "级" + getWindDirectionName(forecast.windBearing)
+      } else {
+        wind_cn = level + "级风"
+      }
+    }
+  }
+  var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
+  var time_prefix_cn = (datetime_cn.time_prefix == previousTimePrefix) ? "" : datetime_cn.time_prefix
+  var simple_datetime = {date:date_cn}
+  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, wind:wind_cn}
+}
+
+
 function renderJson2(data, cityIndex, res) {
   var forecasts = []
+  var dailyForecasts = []
   var previousDate = "";
   var previousTimePrefix = ""
   var timezoneOffset = getCityInfoByIndex(cityIndex).timezoneOffset()
@@ -325,6 +380,13 @@ function renderJson2(data, cityIndex, res) {
   function pushForecast(forecast) {
     forecastItem = getForecastItem2(forecast, previousDate, previousTimePrefix, timezoneOffset)
     forecasts.push(forecastItem)
+    previousDate = forecastItem.datetime.date
+    previousTimePrefix = forecastItem.datetime.time_prefix
+  }
+
+  function pushDailyForecast(forecast) {
+    forecastItem = getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezoneOffset)
+    dailyForecasts.push(forecastItem)
     previousDate = forecastItem.datetime.date
     previousTimePrefix = forecastItem.datetime.time_prefix
   }
@@ -349,13 +411,21 @@ function renderJson2(data, cityIndex, res) {
     pushForecast(forecast)
   }
 
-  render(forecasts, cityIndex, res)
+  if (('daily' in weather) && ('data' in weather.daily)) {
+    var data = weather.daily.data
+    for (var i = 0; i < data.length; i++) {
+      var forecast = data[i]
+      pushDailyForecast(forecast)
+    }
+  }
+
+  render(forecasts, dailyForecasts, cityIndex, res)
 }
 function router_get_forecast2(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
 
   request({
-    url: source_url_prefix_1 + cityInfo.id,
+    url: source_url_prefix_1 + cityInfo.id + '?lang=zh',
     json: true
   }, function (error, response, body) {
     if (!error && response.statusCode === 200) {

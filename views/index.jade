@@ -54,10 +54,23 @@ body
             body #{forecast.info}
           td
             body #{forecast.wind}
+  if (Object.keys(daily).length > 0)
+    h 未来#{Object.keys(daily).length}天天气预报:
+  each forecast in daily
+    table
+      tbody
+        tr
+          td #{forecast.simple_datetime.date}
+          td #{forecast.temp}
+          td #{forecast.info}
+        tr
+          td
+          td
+          td #{forecast.wind}
 
   p #{update_time}
 
   if (source == 0)
-    p '天气数据来源于#[a(href ="http://openweathermap.org/api") OpenWeatherMap]免费天气API'
+    p 天气数据来源于#[a(href ="http://openweathermap.org/api") OpenWeatherMap]免费天气API
   else
     p #[a(href ="http://forecast.io/") Powered by Forecast]

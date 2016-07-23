@@ -5,7 +5,12 @@ body {
 
 p {
   font: 36px "Lucida Grande", Helvetica, Arial, sans-serif;
-  line-height: 5px;
+  line-height: 36px;
+  margin: 5px
+}
+
+h {
+  font: 48px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
