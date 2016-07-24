@@ -79,13 +79,16 @@ function padLeadingSpace(num, size) {
 }
 
 function datetimeInChinese(datetime, offset) {
+  return datetimeInChinese(datetime, offset, false)
+}
+function datetimeInChinese(datetime, offset, simple) {
   datetime = new Date(datetime.getTime() + (datetime.getTimezoneOffset() + offset * 60) * 60 * 1000)
   var date_cn = "周" + dayInChinese(datetime.getDay())
   var hour = datetime.getHours()
   var time_prefix_cn = hour < 12 ? "上午" : "下午"
-  if (hour < 8) time_prefix_cn = "早上"
+  if (hour < 8) time_prefix_cn = simple ? "早" : "早上"
   if (hour < 4) time_prefix_cn = "凌晨"
-  if (hour > 17) time_prefix_cn = "晚上"
+  if (hour > 17) time_prefix_cn = simple ? "晚" : "晚上"
   hour = hour > 12 ? hour - 12 : hour
   hour = hour == 0 ? hour = 12 : hour
   var time_cn = String(hour) + ":" + pad(datetime.getMinutes(), 2)
@@ -349,7 +352,7 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
         var precipIntensity = Math.round(forecast.precipIntensityMax*25.4)
         if (precipIntensity > 0) {
           var precipIntensityMaxTimeDatetime = new Date(forecast.precipIntensityMaxTime * 1000)
-          var maxTime = datetimeInChinese(precipIntensityMaxTimeDatetime, timezoneOffset)
+          var maxTime = datetimeInChinese(precipIntensityMaxTimeDatetime, timezoneOffset, true)
           additional_info = additional_info + maxTime.time_prefix + maxTime.time + '最大' + precipIntensity + 'mm'
         }
       }
@@ -371,9 +374,20 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
       }
     }
   }
-  var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
-  var simple_datetime = {date:date_cn}
-  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, additional_info:additional_info}
+
+  var sun_info = ""
+  if ('sunriseTime' in forecast && 'sunsetTime' in forecast) {
+    var sunriseDateTime = new Date(forecast.sunriseTime * 1000)
+    var sunsetDateTime = new Date(forecast.sunsetTime * 1000)
+    var sunriseTime = datetimeInChinese(sunriseDateTime, timezoneOffset, true)
+    var sunsetTime = datetimeInChinese(sunsetDateTime, timezoneOffset, true)
+    sun_info = sunriseTime.time_prefix + sunriseTime.time + '🌅 ' +
+      sunsetTime.time_prefix + sunsetTime.time + '🌆'
+  }
+
+  var simple_datetime = {date:datetime_cn.date}
+  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn,
+    info:info_cn, additional_info:additional_info, sun_info:sun_info}
 }
 
 
