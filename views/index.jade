@@ -61,10 +61,10 @@ body
       tbody
         tr
           td #{forecast.simple_datetime.date}
-          td #{forecast.temp}
+          td(bgcolor="#ADD8E6") #{forecast.temp}
           td #{forecast.info}
         tr
-          td(colspan=2) #{forecast.sun_info}
+          td(colspan=2, bgcolor="#e0e0e0") #{forecast.sun_info}
           td #{forecast.additional_info}
 
   p #{update_time}
