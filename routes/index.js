@@ -381,8 +381,7 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
     var sunsetDateTime = new Date(forecast.sunsetTime * 1000)
     var sunriseTime = datetimeInChinese(sunriseDateTime, timezoneOffset, true)
     var sunsetTime = datetimeInChinese(sunsetDateTime, timezoneOffset, true)
-    sun_info = sunriseTime.time_prefix + sunriseTime.time + '🌅 ' +
-      sunsetTime.time_prefix + sunsetTime.time + '🌆'
+    sun_info = '🌅' + sunriseTime.time + ' 🌆' + sunsetTime.time
   }
 
   var simple_datetime = {date:datetime_cn.date}

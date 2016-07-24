@@ -64,13 +64,8 @@ body
           td #{forecast.temp}
           td #{forecast.info}
         tr
-          td
-          td
+          td(colspan=2) #{forecast.sun_info}
           td #{forecast.additional_info}
-        tr
-          td
-          td
-          td #{forecast.sun_info}
 
   p #{update_time}
 
