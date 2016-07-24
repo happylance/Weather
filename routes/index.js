@@ -90,7 +90,7 @@ function datetimeInChinese(datetime, offset) {
   hour = hour == 0 ? hour = 12 : hour
   var time_cn = String(hour) + ":" + pad(datetime.getMinutes(), 2)
   if (datetime.getMinutes() == 0) {
-    time_cn = padLeadingSpace(hour, 2) + "点"
+    time_cn = hour + "点"
   }
   return {date:date_cn, time_prefix:time_prefix_cn, time:time_cn}
 }
@@ -333,21 +333,24 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
     }
   }
 
-  var temp_cn =""
+  var temp_cn = ""
   if ('temperatureMin' in forecast && 'temperatureMax' in forecast) {
     var temp_min = getTemperatureInC(forecast.temperatureMin)
     var temp_max = getTemperatureInC(forecast.temperatureMax)
     temp_cn = temp_min + '～' + temp_max + "°C"
   }
 
+  var additional_info = ""
   if ('precipProbability' in forecast) {
     var precipProbability = Math.round(forecast.precipProbability*100)
     if (precipProbability >= 20) {
-      info_cn = info_cn + precipProbability + '%'
-      if ('precipIntensity' in forecast) {
-        var precipIntensity = Math.round(forecast.precipIntensity*25.4)
+      additional_info = additional_info + precipProbability + '%'
+      if ('precipIntensityMax' in forecast && 'precipIntensityMaxTime' in forecast) {
+        var precipIntensity = Math.round(forecast.precipIntensityMax*25.4)
         if (precipIntensity > 0) {
-          info_cn = info_cn + precipIntensity + 'mm'
+          var precipIntensityMaxTimeDatetime = new Date(forecast.precipIntensityMaxTime * 1000)
+          var maxTime = datetimeInChinese(precipIntensityMaxTimeDatetime, timezoneOffset)
+          additional_info = additional_info + maxTime.time_prefix + maxTime.time + '最大' + precipIntensity + 'mm'
         }
       }
     }
@@ -361,12 +364,16 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
       } else {
         wind_cn = level + "级风"
       }
+      if (additional_info == "") {
+        additional_info = wind_cn
+      } else {
+        additional_info = additional_info + ' ' + wind_cn
+      }
     }
   }
   var date_cn = (datetime_cn.date == previousDate) ? "" : datetime_cn.date
-  var time_prefix_cn = (datetime_cn.time_prefix == previousTimePrefix) ? "" : datetime_cn.time_prefix
   var simple_datetime = {date:date_cn}
-  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, wind:wind_cn}
+  return {simple_datetime:simple_datetime, datetime:datetime_cn, temp:temp_cn, info:info_cn, additional_info:additional_info}
 }
 
 
