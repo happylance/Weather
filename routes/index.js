@@ -63,7 +63,7 @@ fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) 
     return
   }
   source_url_key_1 = data.split('\n')[0];
-  source_url_prefix_1 = "https://api.forecast.io/forecast/" + source_url_key_1 + "/"
+  source_url_prefix_1 = "https://api.darksky.net/forecast/" + source_url_key_1 + "/"
 })
 
 function pad(num, size) {
