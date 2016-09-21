@@ -29,7 +29,6 @@ var cities = [{id:"41.059204,121.6055323",name:"巧女",source:1,timezoneOffset:
     {id:"41.312864,122.3147513",name:"盘山1",source:1,timezoneOffset:getCNTimezoneOffset},
     {id:2037913,name:"凌海",source:0,timezoneOffset:getCNTimezoneOffset},
     {id:2035513,name:"盘山",source:0,timezoneOffset:getCNTimezoneOffset},
-    {id:4758390,name:"FC",source:0,timezoneOffset:getEDTTimezoneOffset},
     {id:"38.91607726,-77.20676137",name:"CD",source:1,timezoneOffset:getEDTTimezoneOffset}]
 
 var days_cn = ["日","一","二","三","四","五","六"]
