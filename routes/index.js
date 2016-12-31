@@ -5,53 +5,16 @@ var readline = require('readline');
 var path = require('path');
 var beaufort = require('beaufort')
 var request = require("request")
+var dateUtil = require('../lib/dateUtil')
+var cities = require('../lib/cities')
+var weather = require('../lib/weather')
+var addAccessLog = require('../lib/log').addAccessLog
 
+var forecast_summary = weather.forecast_summary
+var getWindDirectionName = weather.getWindDirectionName
 var options = {unit: 'mps', getName: false};
 var error_prefix = '对不起，出错了，请重试。如果一直不好，需要等亮来修。'
-var wind_directions = ['北', '东北偏北', '东北','东北偏东',
-    '东', '东南偏东','东南', '东南偏南',
-    '南','西南偏南', '西南', '西南偏西',
-    '西', '西北偏西', '西北', '西北偏北']
-function getWindDirectionName(windBearing) {
-  var windIndex = (Math.floor((windBearing + 11.25) / 22.5) % 16)
-  return wind_directions[windIndex] + '风'
-}
 
-function getEDTTimezoneOffset() {
-  var datetime = new Date()
-  return -datetime.getTimezoneOffset() / 60 // EDT
-}
-function getCNTimezoneOffset() {
-  return 8
-}
-var cities = [{id:"41.059204,121.6055323",name:"巧女",source:1,timezoneOffset:getCNTimezoneOffset},
-    {id:"41.095317,121.3422523",name:"凌海1",source:1,timezoneOffset:getCNTimezoneOffset},
-    {id:"41.312864,122.3147513",name:"盘山1",source:1,timezoneOffset:getCNTimezoneOffset},
-    {id:2037913,name:"凌海",source:0,timezoneOffset:getCNTimezoneOffset},
-    {id:2035513,name:"盘山",source:0,timezoneOffset:getCNTimezoneOffset},
-    {id:"38.91607726,-77.20676137",name:"CD",source:1,timezoneOffset:getEDTTimezoneOffset}]
-
-var days_cn = ["日","一","二","三","四","五","六"]
-function dayInChinese(day) {
-  return days_cn[day]
-}
-
-var forecast_summary = {'多云转阴':"阴",
-    '毛毛雨':"细雨",
-    'Light Rain':"小雨",
-    '晴朗':"晴",
-    '局部多云':"少云",
-    'Mostly Cloudy':"多云",
-    '降雨':"中雨",
-    '倾盆大雨':"大雨",
-    '轻微的雨夹雪':"小雨夹雪",
-    'Sleet':"雨夹雪",
-    '较强的雨夹雪':"大雨夹雪",
-    '有雾':"雾",
-    'Light Snow':"小雪",
-    '降雪':"中雪",
-    '鹅毛大雪':"大雪"
-  }
 
 var source_url_prefix_1 = ""
 var source_url_key_1 = ""
@@ -65,43 +28,8 @@ fs.readFile(process.env['HOME'] + '/.forecast_io', 'utf8', function (err, data) 
   source_url_prefix_1 = "https://api.darksky.net/forecast/" + source_url_key_1 + "/"
 })
 
-function pad(num, size) {
-    var s = num+"";
-    while (s.length < size) s = "0" + s;
-    return s;
-}
-
-function padLeadingSpace(num, size) {
-    var s = num+"";
-    while (s.length < size) s = ' ' + s;
-    return s;
-}
-
 function datetimeInChinese(datetime, offset) {
-  return datetimeInChinese(datetime, offset, false)
-}
-function datetimeInChinese(datetime, offset, simple) {
-  datetime = new Date(datetime.getTime() + (datetime.getTimezoneOffset() + offset * 60) * 60 * 1000)
-  var date_cn = "周" + dayInChinese(datetime.getDay())
-  var hour = datetime.getHours()
-  var time_prefix_cn = hour < 12 ? "上午" : "下午"
-  if (hour < 8) time_prefix_cn = simple ? "早" : "早上"
-  if (hour < 4) time_prefix_cn = "凌晨"
-  if (hour > 17) time_prefix_cn = simple ? "晚" : "晚上"
-  hour = hour > 12 ? hour - 12 : hour
-  hour = hour == 0 ? hour = 12 : hour
-  var time_cn = String(hour) + ":" + pad(datetime.getMinutes(), 2)
-  if (datetime.getMinutes() == 0) {
-    time_cn = hour + "点"
-  }
-  return {date:date_cn, time_prefix:time_prefix_cn, time:time_cn}
-}
-
-function datetimeInEnglish(datetime) {
-  var date_en = datetime.toDateString()
-  var time_en = datetime.toLocaleTimeString()
-  var datetime_en = date_en + ' ' + time_en
-  return datetime_en
+  return dateUtil.datetimeInChinese(datetime, offset, false)
 }
 
 function getForecastItem(forecast, previousDate, previousTimePrefix, timezoneOffset){
@@ -174,49 +102,6 @@ function getSunriseAndSunset(logFile, timezoneOffset, res, onClose) {
     onClose(sun)
   });
 };
-
-// Get client IP address from request object ----------------------
-getClientAddress = function (req) {
-  var addr =  (req.headers['x-forwarded-for'] || '').split(',')[0] || req.connection.remoteAddress;
-  addr = addr.replace(/::ffff:/, '')
-  console.log(addr)
-  return addr
-};
-
-function addLogToFile(req_log, accessLogFile) {
-  fs.appendFile(accessLogFile, '\n' + req_log, function (err) {
-    if (err) {
-      console.log(err)
-    }
-  });
-
-  var today = new Date()
-  function isLessThan3DaysOld(log) {
-    var time = log.split(' ').slice(0,5)
-    var datetime = new Date(time)
-    return datetime.getTime() > (today - 3 * 86400 * 1000)
-  }
-
-  fs.readFile(accessLogFile, function(err, data) { // read file to memory
-    if (!err) {
-        data = data.toString(); // stringify buffer
-        var accessLogs = data.split('\n')
-        var recentAccessLogs = accessLogs.filter(isLessThan3DaysOld)
-        if (accessLogs.length == recentAccessLogs.length) {
-          return
-        }
-
-        var newLog = recentAccessLogs.join('\n')
-        fs.writeFile(accessLogFile, newLog, function(err) { // write file
-            if (err) { // if error, report
-                console.log (err);
-            }
-        });
-    } else {
-        console.log(err);
-    }
-  });
-}
 
 function requestForecast(city_id, done) {
   const exec = require('child_process').exec;
@@ -351,7 +236,7 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
         var precipIntensity = Math.round(forecast.precipIntensityMax*25.4)
         if (precipIntensity > 0) {
           var precipIntensityMaxTimeDatetime = new Date(forecast.precipIntensityMaxTime * 1000)
-          var maxTime = datetimeInChinese(precipIntensityMaxTimeDatetime, timezoneOffset, true)
+          var maxTime = dateUtil.datetimeInChinese(precipIntensityMaxTimeDatetime, timezoneOffset, true)
           additional_info = additional_info + maxTime.time_prefix + maxTime.time + '最大' + precipIntensity + 'mm'
         }
       }
@@ -378,8 +263,8 @@ function getForecastItemDaily(forecast, previousDate, previousTimePrefix, timezo
   if ('sunriseTime' in forecast && 'sunsetTime' in forecast) {
     var sunriseDateTime = new Date(forecast.sunriseTime * 1000)
     var sunsetDateTime = new Date(forecast.sunsetTime * 1000)
-    var sunriseTime = datetimeInChinese(sunriseDateTime, timezoneOffset, true)
-    var sunsetTime = datetimeInChinese(sunsetDateTime, timezoneOffset, true)
+    var sunriseTime = dateUtil.datetimeInChinese(sunriseDateTime, timezoneOffset, true)
+    var sunsetTime = dateUtil.datetimeInChinese(sunsetDateTime, timezoneOffset, true)
     sun_info = '🌅' + sunriseTime.time + ' 🌆' + sunsetTime.time
   }
 
@@ -474,15 +359,8 @@ function getCityInfoByIndex(index) {
 
 function router_get_forecast(cityIndex, req, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
-  var accessLogFile = './access.log'
   var today = new Date()
-  var user_agent = req.headers['user-agent']
-  user_agent = user_agent.replace(/Mozilla\/5\.0 \(/, "")
-  user_agent = user_agent.replace(/like Mac OS X\) AppleWebKit\/601\.1\.46 \(KHTML, like Gecko\) Mobile\/13F69/, "")
-  user_agent = user_agent.replace(/; CPU.*OS/, "")
-  var req_log = datetimeInEnglish(today) + ' ' + cityIndex + ' ' + getClientAddress(req) + ' ' + user_agent
-  console.log(req_log)
-  addLogToFile(req_log, accessLogFile)
+  addAccessLog(req, cityIndex)
 
   var cityInfo = getCityInfoByIndex(cityIndex)
   if (cityInfo.source == 1) {
