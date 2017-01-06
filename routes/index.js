@@ -12,7 +12,7 @@ function datetimeInChinese(datetime, offset) {
   return dateUtil.datetimeInChinese(datetime, offset, false)
 }
 
-function render(forecasts, daily, cityIndex, res) {
+function render(data, cityIndex, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
   var timezoneOffset = cityInfo.timezoneOffset()
   console.log(timezoneOffset);
@@ -26,18 +26,7 @@ function render(forecasts, daily, cityIndex, res) {
       titles.push(getCityInfoByIndex(String(i)).name)
   }
   var source = cityInfo.source
-  res.render('index', {forecasts:forecasts, daily:daily, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
-}
-
-function didGetForecasts(forecasts, daily, cityIndex, res, err) {
-  if (err) {
-    console.log(err)
-    res.send(error_prefix + err);
-    return
-  } else {
-    console.log("cityIndex:" + cityIndex)
-    render(forecasts, daily, cityIndex, res)
-  }
+  res.render('index', {forecasts:data.forecasts, daily:data.daily, update_time:update_time, currentURL:"/" + cityIndex, titles:titles, source:source});
 }
 
 function getCityInfoByIndex(index) {
@@ -48,11 +37,16 @@ function router_get_forecast(cityIndex, req, res) {
   addAccessLog(req, cityIndex)
 
   var cityInfo = getCityInfoByIndex(cityIndex)
-  if (cityInfo.source == 1) {
-    forecast_io.router_get_forecast(cityIndex, req, res, didGetForecasts)
-    return
-  }
-  openweathermap.getForecast(cityIndex, req, res, didGetForecasts)
+  var getForecast = (cityInfo.source == 1) ? forecast_io.router_get_forecast : openweathermap.getForecast
+  getForecast(cityIndex, function(err, data) {
+    if (err) {
+      console.log(err)
+      res.send(error_prefix + err);
+    } else {
+      console.log("cityIndex:" + cityIndex)
+      render(data, cityIndex, res)
+    }
+  })
 }
 /* GET home page. */
 router.get('/', function(req, res, next) {
