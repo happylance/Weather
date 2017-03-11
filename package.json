@@ -13,6 +13,7 @@
     "express": "~4.13.1",
     "jade": "~1.11.0",
     "moment": "^2.17.1",
+    "moment-timezone": "^0.5.11",
     "morgan": "~1.6.1",
     "request": "^2.73.0",
     "serve-favicon": "~2.3.0"

@@ -5,17 +5,17 @@ var cities = require('../lib/cities')
 var weather = require('../lib/weather')
 var addAccessLog = require('../lib/log').addAccessLog
 var forecast_io = require('../lib/forecast_io')
+var moment = require('moment-timezone')
 var error_prefix = '对不起，出错了，请重试。如果一直不好，需要等亮来修。'
 
-function datetimeInChinese(datetime, offset) {
-  return dateUtil.datetimeInChinese(datetime, offset, false)
+function datetimeInChinese(unix_time, timezone) {
+  return dateUtil.datetimeInChinese(unix_time, timezone, false)
 }
 
 function render(data, cityIndex, res) {
   var cityInfo = getCityInfoByIndex(cityIndex)
-  var timezoneOffset = data.offset
-  console.log(timezoneOffset);
-  var now_cn = datetimeInChinese(new Date(), timezoneOffset)
+  var timezone = data.timezone
+  var now_cn = datetimeInChinese(moment.utc().valueOf() / 1000, timezone)
   var update_time = "更新于" + cityInfo.name + "时间" + now_cn.date + now_cn.time_prefix + now_cn.time
   console.log(update_time)
 
