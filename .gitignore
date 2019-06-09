@@ -2,3 +2,4 @@ node_modules
 access.log
 data
 .DS_Store
+.forecast_io
